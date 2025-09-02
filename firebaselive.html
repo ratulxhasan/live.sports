@@ -1,0 +1,1197 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ratul LIV. Live Sports all time</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- Firebase SDKs with improved loading -->
+  <script type="module">
+    // Enhanced Firebase initialization with proper error handling
+    async function initializeFirebaseConnection() {
+      try {
+        console.log('Starting Firebase initialization...');
+        
+        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+        const { getDatabase, ref, onValue, off } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
+
+        // Firebase configuration
+        const firebaseConfig = {
+        apiKey: "AIzaSyCkLQ5vf1z9dYjAVcOo7tm0BRT8N7jAbOw",
+        authDomain: "ratul-liv.firebaseapp.com",
+        databaseURL: "https://ratul-liv-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "ratul-liv",
+        storageBucket: "ratul-liv.firebasestorage.app",
+        messagingSenderId: "395032456768",
+        appId: "1:395032456768:web:eadef753d410c71c5439a5",
+        measurementId: "G-0NXVHREYWH"
+       };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        
+        console.log('Firebase initialized successfully');
+        
+        // Set up real-time listener with proper error handling
+        const matchesRef = ref(database, 'matches');
+        
+        onValue(matchesRef, (snapshot) => {
+          try {
+            console.log('Firebase data change detected');
+            const data = snapshot.val();
+            console.log('Raw Firebase data:', data);
+            
+            if (data && typeof data === 'object') {
+              // Ensure proper data structure
+              window.matches = {
+  football: data.football ? Object.values(data.football) : [],
+  cricket: data.cricket ? Object.values(data.cricket) : []
+};
+              console.log('Processed matches data:', window.matches);
+            } else {
+              console.log('No data in Firebase, using empty structure');
+              window.matches = { football: [], cricket: [] };
+            }
+            
+            // Force update the UI
+            if (window.renderMatches && window.switchTab && window.currentTab) {
+              console.log('Updating UI with new data');
+              window.isLoading = false;
+              window.renderMatches('football');
+              window.renderMatches('cricket');
+              window.switchTab(window.currentTab);
+            } else {
+              console.log('UI functions not ready yet, storing data for later');
+              window.pendingFirebaseData = true;
+            }
+            
+          } catch (error) {
+            console.error('Error processing Firebase data:', error);
+          }
+        }, (error) => {
+          console.error('Firebase listener error:', error);
+          // Fallback to empty data on error
+          window.matches = { football: [], cricket: [] };
+          if (window.renderMatches) {
+            window.isLoading = false;
+            window.renderMatches('football');
+            window.renderMatches('cricket');
+          }
+        });
+        
+        // Monitor connection status
+        const connectedRef = ref(database, '.info/connected');
+        onValue(connectedRef, (snapshot) => {
+          const connected = snapshot.val();
+          console.log('Firebase connection status:', connected ? 'Connected' : 'Disconnected');
+        });
+        
+        window.firebaseInitialized = true;
+        console.log('Firebase setup completed successfully');
+        
+      } catch (error) {
+        console.error('Failed to initialize Firebase:', error);
+        // Fallback to empty data
+        window.matches = { football: [], cricket: [] };
+        window.isLoading = false;
+        if (window.renderMatches) {
+          window.renderMatches('football');
+          window.renderMatches('cricket');
+        }
+      }
+    }
+    
+    // Start Firebase initialization
+    initializeFirebaseConnection();
+  </script>
+
+  <!-- Keep all existing CSS styles exactly the same -->
+  <style>
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box; 
+    }
+    
+    html {
+      font-size: 16px;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      min-height: 100vh;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+    
+    .header {
+      background: white;
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      color: #e74c3c;
+      font-size: 24px;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    
+    .menu-btn {
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: #666;
+      cursor: pointer;
+      min-height: 44px;
+      min-width: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .featured-match {
+      padding: 20px;
+      background: white;
+    }
+    
+    .featured-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #333;
+    }
+    
+    .player-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .video-player {
+      width: 100%;
+      height: 120%;
+      background: #222;
+      border-radius: 12px;
+      display: block;
+      object-fit: contain;
+    }
+    
+    .server-options {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .server-btn {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 8px 14px;
+      border: none;
+      background: #f5f5f5;
+      color: #e74c3c;
+      border-radius: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      min-height: 36px;
+      box-sizing: border-box;
+      font-size: 14px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .server-btn.active {
+      background: #e74c3c;
+      color: #fff;
+      transform: scale(1.02);
+    }
+    
+    .server-btn:not(.active) {
+      border: 1.5px solid #e74c3c;
+      background: #f5f5f5;
+      color: #e74c3c;
+    }
+    
+    .server-btn:hover {
+      background: #e74c3c;
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    
+    .server-btn:active {
+      transform: scale(0.98);
+    }
+    
+    .nav-tabs {
+      display: flex;
+      background: white;
+      border-bottom: 1px solid #eee;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      position: relative;
+    }
+    
+    .nav-tabs::-webkit-scrollbar {
+      display: none;
+    }
+    
+    .tab-btn {
+      flex: 1;
+      min-width: 120px;
+      padding: 15px;
+      border: none;
+      background: none;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      min-height: 44px;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      outline: none;
+    }
+    
+    .tab-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: transparent;
+      transition: background-color 0.3s ease;
+    }
+    
+    .tab-btn.active::after {
+      background: #e74c3c;
+    }
+    
+    .tab-btn.active {
+      color: #e74c3c;
+    }
+    
+    .tab-btn:hover:not(.active) {
+      background-color: rgba(231, 76, 60, 0.05);
+    }
+    
+    .tab-btn:focus {
+      outline: none;
+    }
+    
+    .tab-btn:focus-visible {
+      outline: 2px solid #e74c3c;
+      outline-offset: -2px;
+    }
+    
+    .matches-section {
+      padding: 20px;
+    }
+    
+    .matches-section.hidden {
+      display: none;
+    }
+    
+    .match-card {
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .match-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    }
+    
+    .match-card:active {
+      transform: scale(0.98);
+    }
+    
+    .match-card.selected {
+      border: 2px solid #e74c3c;
+      box-shadow: 0 4px 20px rgba(231, 76, 60, 0.2);
+    }
+    
+    .tournament-name {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    
+    .match-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .team {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+    
+    .team-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #eee;
+      object-fit: contain;
+      margin-bottom: 8px;
+    }
+    
+    .team-name {
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+      word-wrap: break-word;
+      hyphens: auto;
+    }
+    
+    .vs-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0 15px;
+    }
+    
+    .vs {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    
+    .live-badge {
+      background: #e74c3c;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+    
+    .time-badge {
+      background: #f0f0f0;
+      color: #666;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .ended-badge {
+      background: #ddd;
+      color: #e74c3c;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 12px;
+      border-top: 1px solid #eee;
+      margin-top: 40px;
+    }
+    
+    .no-matches {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+    
+    .no-matches h3 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+    
+    .refresh-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      cursor: pointer;
+      margin-top: 15px;
+      font-size: 14px;
+      transition: background 0.3s;
+    }
+    
+    .refresh-btn:hover {
+      background: #c0392b;
+    }
+    
+    .loading-indicator {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+    
+    .loading-indicator .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #e74c3c;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Debug indicator */
+    .firebase-status {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 10px 15px;
+      border-radius: 20px;
+      font-size: 12px;
+      z-index: 1000;
+    }
+    
+    /* All existing responsive and dark mode styles remain the same */
+    @media (max-width: 1200px) {
+      .container {
+        max-width: 95%;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      html {
+        font-size: 15px;
+      }
+      
+      .container {
+        max-width: 100%;
+        box-shadow: none;
+      }
+      
+      .header {
+        padding: 12px 16px;
+      }
+      
+      .logo {
+        font-size: 22px;
+      }
+      
+      .featured-match {
+        padding: 16px;
+      }
+      
+      .featured-title {
+        font-size: 16px;
+      }
+      
+      .matches-section {
+        padding: 16px;
+      }
+      
+      .match-card {
+        padding: 12px;
+      }
+      
+      .team-name {
+        font-size: 13px;
+      }
+      
+      .server-options {
+        gap: 6px;
+      }
+      
+      .server-btn {
+        font-size: 13px;
+        min-height: 34px;
+        padding: 7px 12px;
+      }
+      
+      .tab-btn {
+        padding: 12px;
+        font-size: 15px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      html {
+        font-size: 14px;
+      }
+      
+      .container {
+        max-width: 100%;
+      }
+      
+      .header {
+        padding: 10px 12px;
+      }
+      
+      .logo {
+        font-size: 20px;
+      }
+      
+      .featured-match {
+        padding: 12px;
+      }
+      
+      .matches-section {
+        padding: 12px;
+      }
+      
+      .server-options {
+        flex-direction: row;
+        gap: 5px;
+      }
+      
+      .server-btn {
+        font-size: 12px;
+        min-height: 32px;
+        padding: 6px 10px;
+      }
+      
+      .tab-btn {
+        padding: 10px 8px;
+        font-size: 14px;
+        min-width: 100px;
+      }
+      
+      .match-card {
+        padding: 10px;
+        margin-bottom: 12px;
+      }
+      
+      .team-logo {
+        width: 35px;
+        height: 35px;
+      }
+      
+      .team-name {
+        font-size: 12px;
+      }
+      
+      .vs-section {
+        margin: 0 10px;
+      }
+      
+      .tournament-name {
+        font-size: 11px;
+      }
+    }
+    
+    /* Enhanced Pure Black Dark Mode */
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #000000;
+        color: #ffffff;
+      }
+      
+      .container {
+        background: #000000;
+        box-shadow: 0 0 20px rgba(255,255,255,0.1);
+      }
+      
+      .header {
+        background: #000000;
+        border-bottom-color: #333333;
+      }
+      
+      .logo {
+        color: #e74c3c;
+      }
+      
+      .menu-btn {
+        color: #ffffff;
+      }
+      
+      .featured-match {
+        background: #000000;
+      }
+      
+      .featured-title {
+        color: #ffffff;
+      }
+      
+      .nav-tabs {
+        background: #000000;
+        border-bottom-color: #333333;
+      }
+      
+      .tab-btn {
+        color: #ffffff;
+      }
+      
+      .tab-btn.active {
+        color: #e74c3c;
+      }
+      
+      .tab-btn.active::after {
+        background: #e74c3c;
+      }
+      
+      .tab-btn:hover:not(.active) {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+      }
+      
+      .tab-btn:focus-visible {
+        outline-color: #e74c3c;
+      }
+      
+      .match-card {
+        background: #000000;
+        border-color: #333333;
+        color: #ffffff;
+      }
+      
+      .match-card:hover {
+        box-shadow: 0 4px 15px rgba(255,255,255,0.1);
+      }
+      
+      .match-card.selected {
+        border-color: #e74c3c;
+        box-shadow: 0 4px 20px rgba(231, 76, 60, 0.3);
+      }
+      
+      .tournament-name {
+        color: #cccccc;
+      }
+      
+      .team-name {
+        color: #ffffff;
+      }
+      
+      .vs {
+        color: #cccccc;
+      }
+      
+      .server-btn:not(.active) {
+        background: #000000;
+        color: #e74c3c;
+        border-color: #e74c3c;
+      }
+      
+      .server-btn.active {
+        background: #e74c3c;
+        color: #ffffff;
+      }
+      
+      .server-btn:hover {
+        background: #e74c3c;
+        color: #ffffff;
+      }
+      
+      .time-badge {
+        background: #333333;
+        color: #ffffff;
+      }
+      
+      .ended-badge {
+        background: #333333;
+        color: #e74c3c;
+      }
+      
+      .footer {
+        border-top-color: #333333;
+        color: #ffffff;
+      }
+      
+      .player-container {
+        background: #000000;
+      }
+      
+      .no-matches {
+        color: #cccccc;
+      }
+      
+      .no-matches h3 {
+        color: #ffffff;
+      }
+      
+      .loading-indicator {
+        color: #cccccc;
+      }
+    }
+    
+    /* Print Styles */
+    @media print {
+      .header,
+      .nav-tabs,
+      .server-options,
+      .footer {
+        display: none;
+      }
+      
+      .container {
+        box-shadow: none;
+        max-width: 100%;
+      }
+      
+      .match-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #000;
+      }
+      
+      .player-container {
+        display: none;
+      }
+    }
+    
+    /* Touch Optimizations */
+    @media (hover: none) and (pointer: coarse) {
+      .match-card:hover {
+        transform: none;
+      }
+      
+      .server-btn:hover {
+        transform: none;
+      }
+      
+      .tab-btn:hover {
+        background-color: transparent;
+      }
+    }
+    
+    /* High DPI Display Support */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+      .team-logo {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+      }
+    }
+    
+    /* Accessibility Improvements */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    
+    /* Enhanced Focus Styles for Keyboard Navigation */
+    .server-btn:focus,
+    .match-card:focus,
+    .menu-btn:focus {
+      outline: 2px solid #e74c3c;
+      outline-offset: 2px;
+    }
+    
+    .server-btn:focus {
+      outline-offset: 1px;
+    }
+  </style>
+  <script src="https://fle-rvd0i9o8-moo.com/player/jw8_26/jwplayer.js"></script>
+  <script>jwplayer.key = "eNFaXCjyURVoCCGiHp7HTQ3hDhE/AfL0g8VE1fRbL84=";</script>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">Ratul-Liv 🇧🇩</div>
+        <button class="menu-btn"><i class="fas fa-bars"></i></button>
+      </div>
+    </header>
+
+    <section class="featured-match" id="videoSection" style="display:none;">
+      <div class="featured-title" id="videoTitle"></div>
+      <div class="player-container">
+        <div id="jwplayerDiv" class="video-player"></div>
+      </div>
+      <div class="server-options" id="serverRow"></div>
+    </section>
+
+    <nav class="nav-tabs">
+      <button class="tab-btn active" id="tabFootball">Football</button>
+      <button class="tab-btn" id="tabCricket">Cricket</button>
+    </nav>
+
+    <section id="football-section" class="matches-section"></section>
+    <section id="cricket-section" class="matches-section hidden"></section>
+
+    <footer class="footer">
+      &copy; 2025 RatulLiv. All Rights Reserved.
+    </footer>
+  </div>
+
+  <!-- Debug status indicator -->
+  <div id="firebaseStatus" class="firebase-status">Initializing...</div>
+
+  <script>
+    // Global variables with proper initialization
+    window.matches = { football: [], cricket: [] };
+    window.currentTab = "football";
+    window.selectedMatch = null;
+    window.selectedServer = 0;
+    window.isLoading = true;
+    window.firebaseInitialized = false;
+    window.pendingFirebaseData = false;
+
+    // Debug status updates
+    function updateStatus(message) {
+      const statusEl = document.getElementById('firebaseStatus');
+      if (statusEl) {
+        statusEl.textContent = message;
+        console.log('Status:', message);
+      }
+    }
+
+    // Show loading indicator
+    function showLoading(tab) {
+      const section = document.getElementById(`${tab}-section`);
+      section.innerHTML = `
+        <div class="loading-indicator">
+          <div class="spinner"></div>
+          <p>Loading matches from Firebase...</p>
+        </div>
+      `;
+    }
+
+    // Helper: Parse stream for clearkey info if using old format
+    function parseStream(stream) {
+      const parts = stream.url.split('|drmScheme=clearkey&drmLicense=');
+      if (parts.length === 2) {
+        const [url, drm] = parts;
+        const [keyId, key] = drm.split(':');
+        return { ...stream, url, keyId, key };
+      }
+      return stream;
+    }
+
+    // Enhanced render matches with better error handling
+    window.renderMatches = function(tab) {
+      console.log(`Rendering matches for ${tab}:`, window.matches[tab]);
+      const section = document.getElementById(`${tab}-section`);
+      
+      if (window.isLoading) {
+        showLoading(tab);
+        return;
+      }
+      
+      section.innerHTML = '';
+      
+      if (!window.matches[tab] || window.matches[tab].length === 0) {
+        const noMatchesDiv = document.createElement('div');
+        noMatchesDiv.className = 'no-matches';
+        noMatchesDiv.innerHTML = `
+          <h3>No ${tab.charAt(0).toUpperCase() + tab.slice(1)} Matches</h3>
+          <p>Check back later for upcoming matches.</p>
+          <button class="refresh-btn" onclick="window.location.reload()">Refresh</button>
+        `;
+        section.appendChild(noMatchesDiv);
+        updateStatus(`No ${tab} matches available`);
+        return;
+      }
+
+      window.matches[tab].forEach((match, idx) => {
+        const card = document.createElement('div');
+        card.className = "match-card" + (window.selectedMatch && window.selectedMatch.tab === tab && window.selectedMatch.idx === idx ? " selected" : "");
+        card.onclick = () => selectMatch(tab, idx);
+        card.setAttribute('tabindex', '0');
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectMatch(tab, idx);
+          }
+        });
+
+        // Tournament name
+        const tournament = document.createElement('div');
+        tournament.className = "tournament-name";
+        tournament.textContent = match.title;
+        card.appendChild(tournament);
+
+        // Teams row
+        const info = document.createElement('div');
+        info.className = "match-info";
+
+        // Team 1
+        const t1 = document.createElement('div');
+        t1.className = "team";
+        const t1logo = document.createElement('img');
+        t1logo.className = "team-logo";
+        t1logo.src = match.team1.logo;
+        t1logo.alt = match.team1.name;
+        t1logo.loading = "lazy";
+        t1logo.onerror = function() {
+          this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNlZWUiLz4KPHN2Zz4K';
+        };
+        t1.appendChild(t1logo);
+        const t1name = document.createElement('div');
+        t1name.className = "team-name";
+        t1name.textContent = match.team1.name;
+        t1.appendChild(t1name);
+
+        // VS section
+        const vsSection = document.createElement('div');
+        vsSection.className = "vs-section";
+        const vs = document.createElement('div');
+        vs.className = "vs";
+        vs.textContent = "VS";
+        vsSection.appendChild(vs);
+
+        if (match.status === "live") {
+          const badge = document.createElement('div');
+          badge.className = "live-badge";
+          badge.textContent = "LIVE";
+          vsSection.appendChild(badge);
+        } else if (match.status === "ended") {
+          const badge = document.createElement('div');
+          badge.className = "ended-badge";
+          badge.textContent = match.score ? `${match.score}` : "ENDED";
+          vsSection.appendChild(badge);
+        } else {
+          const badge = document.createElement('div');
+          badge.className = "time-badge";
+          badge.setAttribute("data-tab", tab);
+          badge.setAttribute("data-idx", idx);
+          badge.textContent = formatCountdown(new Date(match.startTime) - Date.now());
+          vsSection.appendChild(badge);
+        }
+
+        // Team 2
+        const t2 = document.createElement('div');
+        t2.className = "team";
+        const t2logo = document.createElement('img');
+        t2logo.className = "team-logo";
+        t2logo.src = match.team2.logo;
+        t2logo.alt = match.team2.name;
+        t2logo.loading = "lazy";
+        t2logo.onerror = function() {
+          this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNlZWUiLz4KPHN2Zz4K';
+        };
+        t2.appendChild(t2logo);
+        const t2name = document.createElement('div');
+        t2name.className = "team-name";
+        t2name.textContent = match.team2.name;
+        t2.appendChild(t2name);
+
+        info.appendChild(t1);
+        info.appendChild(vsSection);
+        info.appendChild(t2);
+        card.appendChild(info);
+
+        section.appendChild(card);
+      });
+      
+      updateStatus(`Showing ${window.matches[tab].length} ${tab} matches`);
+    }
+
+    // Format countdown as d:h:m:s or h:m:s
+    function formatCountdown(ms) {
+      if (ms < 0) return "LIVE";
+      let s = Math.floor(ms/1000);
+      const d = Math.floor(s/86400); s %= 86400;
+      const h = Math.floor(s/3600); s %= 3600;
+      const m = Math.floor(s/60); s %= 60;
+      return (d>0?d+"d ":"") + (h<10?"0":"")+h+":"+(m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+    }
+
+    // Update countdowns every second
+    setInterval(() => {
+      ['football','cricket'].forEach(tab=>{
+        if (window.matches[tab]) {
+          window.matches[tab].forEach((match, idx) => {
+            if (match.status === "scheduled") {
+              const badge = document.querySelector(`.time-badge[data-tab="${tab}"][data-idx="${idx}"]`);
+              if (badge) {
+                const diff = new Date(match.startTime) - Date.now();
+                badge.textContent = formatCountdown(diff);
+                if (diff <= 0) {
+                  match.status = "live";
+                  window.renderMatches(tab);
+                  if (window.selectedMatch && window.selectedMatch.tab === tab && window.selectedMatch.idx === idx) {
+                    showVideoSection(tab, idx);
+                  }
+                }
+              }
+            }
+          });
+        }
+      });
+    }, 1000);
+
+    // Tab switching
+    document.getElementById('tabFootball').onclick = () => switchTab('football');
+    document.getElementById('tabCricket').onclick = () => switchTab('cricket');
+
+    window.switchTab = function(tab) {
+      window.currentTab = tab;
+      document.getElementById('tabFootball').classList.toggle('active', tab==='football');
+      document.getElementById('tabCricket').classList.toggle('active', tab==='cricket');
+      document.getElementById('football-section').classList.toggle('hidden', tab!=='football');
+      document.getElementById('cricket-section').classList.toggle('hidden', tab!=='cricket');
+    }
+
+    // Match selection
+    function selectMatch(tab, idx) {
+      window.selectedMatch = { tab, idx };
+      window.selectedServer = 0;
+      window.renderMatches(tab);
+      showVideoSection(tab, idx);
+    }
+
+    // JW Player and iFrame integration
+    function showVideoSection(tab, idx) {
+      const match = window.matches[tab][idx];
+      if (!match || !match.streams || match.streams.length === 0) {
+        console.error('Match or streams not found');
+        return;
+      }
+
+      // Use parseStream to support both new and old formats
+      const stream = parseStream(match.streams[window.selectedServer]);
+
+      document.getElementById('videoSection').style.display = "";
+      document.getElementById('videoTitle').textContent = match.title + ": " + match.team1.name + " vs " + match.team2.name;
+
+      // Servers buttons
+      const row = document.getElementById('serverRow');
+      row.innerHTML = "";
+      match.streams.forEach((srv, i) => {
+        const btn = document.createElement('button');
+        btn.className = "server-btn" + (i === window.selectedServer ? " active" : "");
+        btn.textContent = srv.name;
+        btn.onclick = () => {
+          if (window.selectedServer !== i) {
+            window.selectedServer = i;
+            showVideoSection(tab, idx);
+          }
+        };
+        row.appendChild(btn);
+      });
+
+      // Player rendering (JW Player or iFrame)
+      const playerDiv = document.getElementById('jwplayerDiv');
+      playerDiv.innerHTML = ""; // Clear previous content
+
+      if (stream.type === "iframe") {
+        // Responsive iframe container
+        playerDiv.innerHTML = `
+          <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width:100%;">
+            <iframe style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" 
+              webkitAllowFullScreen mozallowfullscreen allowfullscreen 
+              width="640" height="360" frameborder="0" allow="autoplay" 
+              src="${stream.url}">
+            </iframe>
+          </div>
+        `;
+      } else {
+        window._jwSetup = stream.url;
+        const jwConfig = {
+          file: stream.url,
+          width: "100%",
+          aspectratio: "16:9",
+          autostart: true,
+          controls: true
+        };
+        if (stream.keyId && stream.key) {
+          jwConfig.drm = {
+            clearkey: {
+              keyId: stream.keyId,
+              key: stream.key
+            }
+          };
+        }
+        jwplayer("jwplayerDiv").setup(jwConfig);
+      }
+    }
+
+    // Enhanced initialization with proper sequencing
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, waiting for Firebase...');
+      updateStatus('DOM loaded, waiting for Firebase...');
+      
+      // Show loading state immediately
+      showLoading('football');
+      showLoading('cricket');
+      
+      // Check for Firebase initialization every 100ms
+      function checkFirebaseInit() {
+        if (window.firebaseInitialized || window.pendingFirebaseData) {
+          console.log('Firebase ready, rendering UI...');
+          updateStatus('Firebase connected, loading matches...');
+          window.isLoading = false;
+          window.renderMatches('football');
+          window.renderMatches('cricket');
+          window.switchTab('football');
+          
+          // Hide status after successful load
+          setTimeout(() => {
+            const statusEl = document.getElementById('firebaseStatus');
+            if (statusEl) statusEl.style.display = 'none';
+          }, 3000);
+          
+        } else {
+          console.log('Still waiting for Firebase...');
+          setTimeout(checkFirebaseInit, 100);
+        }
+      }
+      
+      // Start checking after a brief delay
+      setTimeout(checkFirebaseInit, 500);
+      
+      // Fallback timeout
+      setTimeout(() => {
+        if (window.isLoading) {
+          console.log('Firebase timeout, showing empty state');
+          updateStatus('Firebase timeout - showing empty state');
+          window.isLoading = false;
+          window.renderMatches('football');
+          window.renderMatches('cricket');
+          window.switchTab('football');
+        }
+      }, 10000);
+    });
+  </script>
+</body>
+</html>
