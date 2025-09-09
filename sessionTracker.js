@@ -54,3 +54,13 @@ if (savedSession) {
     }
   });
 }
+const userPrefs = {
+  stream: localStorage.getItem("lastStream"),
+  theme: localStorage.getItem("theme"),
+  lang: localStorage.getItem("lang")
+};
+
+// Use these to customize Firebase queries or UI rendering
+firebase.database().ref(`/streams/${userPrefs.stream}`).once("value").then((snapshot) => {
+  renderStream(snapshot.val());
+});
