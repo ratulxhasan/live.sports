@@ -64,3 +64,33 @@ const userPrefs = {
 firebase.database().ref(`/streams/${userPrefs.stream}`).once("value").then((snapshot) => {
   renderStream(snapshot.val());
 });
+function restoreUserSession() {
+  const userData = JSON.parse(localStorage.getItem("userSession")) || {};
+  // Apply UI state before Firebase loads
+  if (userData.theme) document.body.className = userData.theme;
+  if (userData.lastStream) loadStream(userData.lastStream);
+  if (userData.selectedTab) activateTab(userData.selectedTab);
+}document.addEventListener("DOMContentLoaded", () => {
+  restoreUserSession(); // ⏳ Restore UI first
+
+  // ✅ Then load Firebase
+  firebase.initializeApp(firebaseConfig);
+  firebase.database().ref("/streams").once("value").then((snapshot) => {
+    renderStreams(snapshot.val()); // Your custom renderer
+  });
+});let uiReady = false;
+
+function restoreUserSession() {
+  // Restore logic...
+  uiReady = true;
+}
+
+firebase.database().ref("/streams").on("value", (snapshot) => {
+  if (!uiReady) return; // ⛔ Skip rendering until UI is ready
+  renderStreams(snapshot.val());
+});firebase.database().ref("/streams").once("value").then((snapshot) => {
+  const data = snapshot.val();
+  localStorage.setItem("cachedStreams", JSON.stringify(data));
+  renderStreams(data);
+});const cached = JSON.parse(localStorage.getItem("cachedStreams"));
+if (cached) renderStreams(cached);
