@@ -42,7 +42,7 @@
     <section id="turnstileSection" class="verify-box">
       <h2>Verify to Continue</h2>
       <div class="cf-turnstile"
-           data-sitekey="0x4AAAAAABlX8o-jG8k3DNbX"
+           data-sitekey="0x4AAAAAAB0sj0L7hIXQMc2l"
            data-callback="onTurnstileSuccess">
       </div>
     </section>
@@ -115,16 +115,19 @@
       }
     }
 
-    // Turnstile Callback
+    // ✅ Turnstile Success Callback
     window.onTurnstileSuccess = function(token) {
+      console.log("Turnstile verification success:", token);
       document.getElementById("firebaseStatus").innerText = "Verification Successful 🎉";
+
+      // Hide verification box, show main UI
       document.getElementById("turnstileSection").style.display = "none";
       document.getElementById("mainTabs").style.display = "flex";
 
+      // Init Firebase + Load app.js
       if (!firebaseInitialized) {
         firebaseInitialized = true;
         initializeFirebase().then(() => {
-          // Load your main app.js AFTER firebase is ready
           const script = document.createElement("script");
           script.src = "app.js";
           document.body.appendChild(script);
