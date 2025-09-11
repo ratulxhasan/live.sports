@@ -7,20 +7,81 @@
   <meta charset="UTF-8">
   <title>Ratul LIV - Live Sports</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-<form action="https://ratul11.ratulhasan2a.workers.dev/" method="POST">
-  <input type="text" name="name" required>
-  <div class="cf-turnstile" data-sitekey="0x4AAAAAAB0sj0L7hIXQMc2l"></div>
-  <button type="submit">Submit</button>
-</form>
+
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
   <!-- Main CSS -->
   <link rel="stylesheet" href="style.css">
-  
 
-  <!-- Firebase SDK -->
+  <!-- Cloudflare Turnstile -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+  <!-- JW Player -->
+  <script src="https://fle-rvd0i9o8-moo.com/player/jw8_26/jwplayer.js"></script>
+  <script>jwplayer.key="eNFaXCjyURVoCCGiHp7HTQ3hDhE/AfL0g8VE1fRbL84=";</script>
+</head>
+<body>
+  <div class="container">
+
+    <header class="header">
+      <div class="logo">Live Sports 🇧🇩</div>
+
+      <!-- Menu Button -->
+      <button class="menu-btn" id="menuBtn">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <!-- Dropdown Menu -->
+      <div class="dropdown-menu" id="dropdownMenu">
+        <a href="https://t.me/+5S-lx5CxGJEwMTdl" target="_blank">
+          <i class="fab fa-telegram-plane"></i> Join Telegram
+        </a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </div>
+    </header>
+
+    <!-- Turnstile Verification Box -->
+    <section id="turnstileSection" class="verify-box">
+      <h2>Verify to Continue</h2>
+      <div class="cf-turnstile"
+           data-sitekey="0x4AAAAAAB0sj0L7hIXQMc2l"  <!-- Replace with your site key -->
+           data-callback="onTurnstileSuccess">
+      </div>
+    </section>
+
+    <!-- Video Player -->
+    <section class="featured-match" id="videoSection" style="display:none;">
+      <div class="featured-title" id="videoTitle"></div>
+      <div class="player-container">
+        <div id="jwplayerDiv" class="video-player"></div>
+      </div>
+      <div class="server-options" id="serverRow"></div>
+    </section>
+
+    <!-- Main Tabs -->
+    <nav class="nav-tabs" id="mainTabs" style="display:none;">
+      <button class="tab-btn active" id="tabFootball">Football</button>
+      <button class="tab-btn" id="tabCricket">Cricket</button>
+    </nav>
+
+    <!-- Matches Sections -->
+    <section id="football-section" class="matches-section hidden"></section>
+    <section id="cricket-section" class="matches-section hidden"></section>
+
+    <footer class="footer">
+      &copy; 2025 Ratul liv. All Rights Reserved.🇧🇩
+    </footer>
+  </div>
+
+  <!-- Debug -->
+  <div id="firebaseStatus" class="firebase-status">Waiting for verification...</div>
+
+  <!-- Firebase & App -->
   <script type="module">
+    let firebaseInitialized = false;
+
     async function initializeFirebase() {
       try {
         const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
@@ -48,68 +109,27 @@
           };
           document.dispatchEvent(new CustomEvent('firebaseDataReady'));
         });
+
+        document.getElementById("firebaseStatus").innerText = "Firebase Loaded ✅";
       } catch(e) {
         console.error("Firebase error:", e);
-        window.matches = { football: [], cricket: [] };
-        document.dispatchEvent(new CustomEvent('firebaseDataError'));
+        document.getElementById("firebaseStatus").innerText = "Firebase Error ❌";
       }
     }
-    initializeFirebase();
+
+    // Turnstile Callback
+    window.onTurnstileSuccess = function(token) {
+      document.getElementById("firebaseStatus").innerText = "Verification Successful 🎉";
+      document.getElementById("turnstileSection").style.display = "none";
+      document.getElementById("mainTabs").style.display = "flex";
+
+      if (!firebaseInitialized) {
+        firebaseInitialized = true;
+        initializeFirebase();
+      }
+    }
   </script>
 
-  <!-- JW Player -->
-  <script src="https://fle-rvd0i9o8-moo.com/player/jw8_26/jwplayer.js"></script>
-  <script>jwplayer.key="eNFaXCjyURVoCCGiHp7HTQ3hDhE/AfL0g8VE1fRbL84=";</script>
-</head>
-<body>
-  <div class="container">
-
-    <header class="header">
-  <div class="logo">Live Sports 🇧🇩</div>
-
-  <!-- Menu Button -->
-  <button class="menu-btn" id="menuBtn">
-    <i class="fas fa-bars"></i>
-  </button>
-
-  <!-- Dropdown Menu -->
-  <div class="dropdown-menu" id="dropdownMenu">
-    <a href="https://t.me/+5S-lx5CxGJEwMTdl" target="_blank">
-      <i class="fab fa-telegram-plane"></i> Join Telegram
-    </a>
-    <a href="#about">About</a>
-    <a href="#contact">Contact</a>
-  </div>
-</header>
-
-    <!-- Video Player -->
-    <section class="featured-match" id="videoSection" style="display:none;">
-      <div class="featured-title" id="videoTitle"></div>
-      <div class="player-container">
-        <div id="jwplayerDiv" class="video-player"></div>
-      </div>
-      <div class="server-options" id="serverRow"></div>
-    </section>
-
-    <!-- Main Tabs -->
-    <nav class="nav-tabs">
-      <button class="tab-btn active" id="tabFootball">Football</button>
-      <button class="tab-btn" id="tabCricket">Cricket</button>
-    </nav>
-
-    <!-- Matches Sections -->
-    <section id="football-section" class="matches-section"></section>
-    <section id="cricket-section" class="matches-section hidden"></section>
-
-    <footer class="footer">
-      &copy; 2025 Ratul liv. All Rights Reserved.🇧🇩
-    </footer>
-  </div>
-
-  <!-- Debug -->
-  <div id="firebaseStatus" class="firebase-status">Initializing...</div>
-
-  <!-- App JS -->
   <script src="app.js"></script>
 </body>
 </html>
