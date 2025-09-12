@@ -157,9 +157,9 @@ body {
   box-shadow: 0 12px 24px rgba(255,20,147,0.4);
 }
 .match-title {
-  font-size: 18px;
+  font-size: 12px;
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   color: #f0f0f0;
   text-shadow: 0 0 6px rgba(255,255,255,0.3);
 }
@@ -175,8 +175,8 @@ body {
   width: 30%;
 }
 .team-logo-small {
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   border: 2px solid #fff;
   overflow: hidden; /* clip inner image */
@@ -186,8 +186,8 @@ body {
 }
 
 .team-logo-small img {
-  width: 50%;  /* image slightly bigger than container */
-  height: 50%;
+  width: 100%;  /* image slightly bigger than container */
+  height: 100%;
   object-fit: cover; /* fill container */
 }
 .team-logo-small:hover {
@@ -195,7 +195,7 @@ body {
 }
 .team-name-small {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   text-align: center;
   color: #fff;
   text-shadow: 0 0 4px rgba(255,255,255,0.3);
@@ -222,7 +222,7 @@ body {
   padding: 6px 12px;
   border-radius: 14px;
   text-align: center;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.5px;
   transition: all 0.3s ease;
 }
