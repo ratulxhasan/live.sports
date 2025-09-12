@@ -75,77 +75,78 @@
   </div>
 
   <!-- Firebase Loader -->
-  <script type="module">
-    let firebaseInitialized = false;
+<script type="module">
+  let firebaseInitialized = false;
 
-    async function initializeFirebase() {
-      if (firebaseInitialized) return; // prevent double init
-      firebaseInitialized = true;
+  async function initializeFirebase() {
+    if (firebaseInitialized) return; // prevent double init
+    firebaseInitialized = true;
 
-      try {
-        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-        const { getDatabase, ref, onValue } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
+    try {
+      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+      const { getDatabase, ref, onValue } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
 
-        const firebaseConfig = {
-          apiKey: "AIzaSyCkLQ5vf1z9dYjAVcOo7tm0BRT8N7jAbOw",
-          authDomain: "ratul-liv.firebaseapp.com",
-          databaseURL: "https://ratul-liv-default-rtdb.asia-southeast1.firebasedatabase.app",
-          projectId: "ratul-liv",
-          storageBucket: "ratul-liv.firebasestorage.app",
-          messagingSenderId: "395032456768",
-          appId: "1:395032456768:web:eadef753d410c71c5439a5",
-        };
+      const firebaseConfig = {
+        apiKey: "AIzaSyCkLQ5vf1z9dYjAVcOo7tm0BRT8N7jAbOw",
+        authDomain: "ratul-liv.firebaseapp.com",
+        databaseURL: "https://ratul-liv-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "ratul-liv",
+        storageBucket: "ratul-liv.firebasestorage.app",
+        messagingSenderId: "395032456768",
+        appId: "1:395032456768:web:eadef753d410c71c5439a5",
+      };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const matchesRef = ref(db, 'matches');
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+      const matchesRef = ref(db, 'matches');
 
-        onValue(matchesRef, (snapshot) => {
-          const data = snapshot.val() || {};
-          let football = data.football ? Object.values(data.football) : [];
-          let cricket = data.cricket ? Object.values(data.cricket) : [];
+      onValue(matchesRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        let football = data.football ? Object.values(data.football) : [];
+        let cricket = data.cricket ? Object.values(data.cricket) : [];
 
-          // --- Fixed Sorting logic ---
-          function sortMatches(arr) {
-            const order = { live: 0, upcoming: 1, ended: 2 };
-            return arr.sort((a, b) => {
-              if (order[a.status] !== order[b.status]) {
-                return order[a.status] - order[b.status];
-              }
-              // ✅ For upcoming: earliest time first
-              if (a.status === "upcoming" && b.status === "upcoming") {
-                return new Date(a.startTime) - new Date(b.startTime);
-              }
-              // ✅ For ended: latest first
-              if (a.status === "ended" && b.status === "ended") {
-                return new Date(b.startTime) - new Date(a.startTime);
-              }
-              // For live keep order
-              return 0;
-            });
-          }
+        // ✅ Sorting function
+        function sortMatches(arr) {
+          const order = { live: 0, upcoming: 1, ended: 2 };
+          return arr.sort((a, b) => {
+            if (order[a.status] !== order[b.status]) {
+              return order[a.status] - order[b.status];
+            }
 
-          football = sortMatches(football);
-          cricket = sortMatches(cricket);
+            // Upcoming → earliest first
+            if (a.status === "upcoming" && b.status === "upcoming") {
+              return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+            }
 
-          window.matches = { football, cricket };
-          console.log("Firebase Data Ready", window.matches);
-          document.dispatchEvent(new CustomEvent('firebaseDataReady'));
-        });
-      } catch (e) {
-        console.error("Firebase error:", e);
-      }
+            // Ended → latest first
+            if (a.status === "ended" && b.status === "ended") {
+              return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+            }
+
+            return 0; // for live keep same order
+          });
+        }
+
+        football = sortMatches(football);
+        cricket = sortMatches(cricket);
+
+        window.matches = { football, cricket };
+        console.log("✅ Sorted Data Ready", window.matches);
+        document.dispatchEvent(new CustomEvent('firebaseDataReady'));
+      });
+    } catch (e) {
+      console.error("Firebase error:", e);
     }
+  }
 
-    // Turnstile callback
-    window.onTurnstileSuccess = function(token) {
-      console.log("Turnstile verified:", token);
-      document.getElementById("turnstileOverlay").style.display = "none";
-      document.getElementById("mainContent").style.display = "block";
-      initializeFirebase();
-    }
-  </script>
-
+  // Turnstile callback
+  window.onTurnstileSuccess = function(token) {
+    console.log("Turnstile verified:", token);
+    document.getElementById("turnstileOverlay").style.display = "none";
+    document.getElementById("mainContent").style.display = "block";
+    initializeFirebase();
+  }
+</script>
   <!-- App Logic -->
   <script src="app.js"></script>
 </body>
