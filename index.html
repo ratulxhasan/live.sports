@@ -105,14 +105,23 @@
           let football = data.football ? Object.values(data.football) : [];
           let cricket = data.cricket ? Object.values(data.cricket) : [];
 
-          // --- Sorting logic ---
+          // --- Fixed Sorting logic ---
           function sortMatches(arr) {
             const order = { live: 0, upcoming: 1, ended: 2 };
             return arr.sort((a, b) => {
               if (order[a.status] !== order[b.status]) {
                 return order[a.status] - order[b.status];
               }
-              return new Date(b.startTime) - new Date(a.startTime); // newest first
+              // ✅ For upcoming: earliest time first
+              if (a.status === "upcoming" && b.status === "upcoming") {
+                return new Date(a.startTime) - new Date(b.startTime);
+              }
+              // ✅ For ended: latest first
+              if (a.status === "ended" && b.status === "ended") {
+                return new Date(b.startTime) - new Date(a.startTime);
+              }
+              // For live keep order
+              return 0;
             });
           }
 
