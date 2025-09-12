@@ -5,16 +5,8 @@
 <title>Ratul LIV - Live Sports</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- Prefetch -->
-<link rel="dns-prefetch" href="//firebasestorage.googleapis.com" />
-<link rel="dns-prefetch" href="//cdn.jwplayer.com" />
-<link rel="dns-prefetch" href="//ratul122.workers.dev" />
-
 <!-- Font Awesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
-<!-- Main CSS -->
-<link rel="stylesheet" href="style.css">
 
 <!-- Cloudflare Turnstile -->
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
@@ -22,12 +14,64 @@
 <!-- JW Player -->
 <script src="https://ssl.p.jwpcdn.com/player/v/8.33.2/jwplayer.js"></script>
 <script>jwplayer.key="cLGMn8T20tGvW+0eXPhq4NNmLB57TrscPjd1IyJF84o=";</script>
+
+<style>
+/* RESET */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Roboto, sans-serif; background: #121212; color: #fff; }
+
+/* HEADER */
+.header {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #1e1e1e; padding: 12px 20px;
+  position: sticky; top: 0; z-index: 1000;
+}
+.logo { font-size: 20px; font-weight: bold; }
+.menu-btn { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; }
+.dropdown-menu { display: none; position: absolute; top: 50px; right: 20px; background: #222; border-radius: 8px; }
+.dropdown-menu a { display: block; padding: 10px; color: #fff; text-decoration: none; }
+.dropdown-menu a:hover { background: #333; }
+
+/* STICKY PLAYER */
+.player-container {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 60px; /* header height অনুযায়ী adjust করুন */
+  z-index: 900;
+  background: #000;
+}
+.video-player {
+  width: 100%;
+  aspect-ratio: 16/9;
+}
+
+/* NAV TABS */
+.nav-tabs {
+  display: flex; justify-content: center; gap: 10px; margin: 15px 0;
+}
+.tab-btn {
+  padding: 10px 20px; border: none;
+  background: #333; color: #fff;
+  border-radius: 6px; cursor: pointer;
+}
+.tab-btn.active { background: #ff4c4c; }
+
+/* MATCH SECTIONS */
+.matches-section { padding: 10px; }
+.hidden { display: none; }
+
+/* FOOTER */
+.footer { text-align: center; padding: 15px; background: #1e1e1e; margin-top: 20px; }
+
+/* FIREBASE STATUS */
+.firebase-status { text-align: center; padding: 10px; background: #222; color: #ffcc00; }
+</style>
 </head>
 <body>
 
 <!-- Turnstile overlay -->
 <div id="turnstileOverlay">
-  <div id="turnstileBox">
+  <div id="turnstileBox" style="text-align:center;padding:30px;">
     <h4>Verify you're human 🎭 DDOS & BOT security by Cloudflare</h4>
     <div class="cf-turnstile"
          data-sitekey="0x4AAAAAAB0sj0L7hIXQMc2l"
@@ -49,12 +93,11 @@
 
   <!-- Video Player -->
   <section id="videoSection" style="display:none;">
-    <div id="videoTitle" class="featured-title"></div>
-    <!-- added sticky-player class -->
-    <div class="player-container sticky-player">
+    <div id="videoTitle" class="featured-title" style="padding:10px;font-size:18px;font-weight:bold;"></div>
+    <div class="player-container">
       <div id="jwplayerDiv" class="video-player"></div>
     </div>
-    <div id="serverRow" class="server-options"></div>
+    <div id="serverRow" class="server-options" style="padding:10px;"></div>
   </section>
 
   <!-- Tabs -->
@@ -150,7 +193,5 @@ document.getElementById('tabCricket').addEventListener('click', () => {
   document.getElementById('tabFootball').classList.remove('active');
 });
 </script>
-
-<script src="app.js"></script>
 </body>
 </html>
