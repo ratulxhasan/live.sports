@@ -102,10 +102,24 @@
 
         onValue(matchesRef, (snapshot) => {
           const data = snapshot.val() || {};
-          window.matches = {
-            football: data.football ? Object.values(data.football) : [],
-            cricket: data.cricket ? Object.values(data.cricket) : []
-          };
+          let football = data.football ? Object.values(data.football) : [];
+          let cricket = data.cricket ? Object.values(data.cricket) : [];
+
+          // --- Sorting logic ---
+          function sortMatches(arr) {
+            const order = { live: 0, upcoming: 1, ended: 2 };
+            return arr.sort((a, b) => {
+              if (order[a.status] !== order[b.status]) {
+                return order[a.status] - order[b.status];
+              }
+              return new Date(b.startTime) - new Date(a.startTime); // newest first
+            });
+          }
+
+          football = sortMatches(football);
+          cricket = sortMatches(cricket);
+
+          window.matches = { football, cricket };
           console.log("Firebase Data Ready", window.matches);
           document.dispatchEvent(new CustomEvent('firebaseDataReady'));
         });
