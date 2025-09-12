@@ -14,7 +14,7 @@ body {
   transition: background 0.3s ease;
 }
 .container {
-  max-width: 1200px;
+  max-width: auto;
   margin: auto;
   background: #181a1b;
   min-height: 100vh;
@@ -22,14 +22,14 @@ body {
 }
 
 /* ==============================
-   Header
+   Header (Sticky)
    ============================== */
 .header {
   background: linear-gradient(90deg, #ff005a, #ff0080, #ff00bf);
   padding: 6px 12px;
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -61,15 +61,18 @@ body {
 }
 
 /* ==============================
-   Featured Match / Player Section
+   Featured Match / Player Section (Sticky)
    ============================== */
 .featured-match {
-  padding: 20px;
-  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-  margin: 15px 0;
-  border-radius: 14px;
+  position: sticky;
+  top: 14px; /* header height */
+  padding: 10px;
+  background: #000000;
+  margin: 18px 0;
+  border-radius: 0px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.6);
   animation: fadeIn 1s ease;
+  z-index: 999;
 }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-10px);}
@@ -81,13 +84,22 @@ body {
   border-radius: 14px;
   overflow: hidden;
   background: #000;
-  margin-bottom: 12px;
+  margin-bottom: 0px;
 }
 .video-player {
   width: 100%;
   height: 100%;
   object-fit: contain;
   border-radius: 14px;
+}
+
+/* Add spacing below sticky video to prevent overlap */
+.matches-section {
+  padding: 10px;
+  margin-top: 20px;
+}
+.matches-section.hidden {
+  display: none;
 }
 
 /* ==============================
@@ -126,16 +138,6 @@ body {
   border-radius: 4px;
   background: linear-gradient(90deg, #ff005a, #ff0080, #ff00bf);
   animation: liveBlink 1.2s infinite;
-}
-
-/* ==============================
-   Matches Section
-   ============================== */
-.matches-section {
-  padding: 10px;
-}
-.matches-section.hidden {
-  display: none;
 }
 
 /* ==============================
@@ -179,16 +181,15 @@ body {
   height: 60px;
   border-radius: 50%;
   border: 2px solid #fff;
-  overflow: hidden; /* clip inner image */
+  overflow: hidden; 
   display: flex;
   justify-content: center;
   align-items: center;
 }
-
 .team-logo-small img {
-  width: 100%;  /* image slightly bigger than container */
+  width: 100%;
   height: 100%;
-  object-fit: cover; /* fill container */
+  object-fit: cover; 
 }
 .team-logo-small:hover {
   transform: scale(1.1);
@@ -200,7 +201,6 @@ body {
   color: #fff;
   text-shadow: 0 0 4px rgba(255,255,255,0.3);
 }
-
 .vs-section-horizontal {
   display: flex;
   flex-direction: column;
@@ -231,16 +231,8 @@ body {
   color: #fff;
   animation: liveBlink 1.2s infinite ease-in-out;
 }
-.badge.schedule {
-  background-color: #444;
-}
-.badge.ended {
-  background-color: #777;
-}
-
-/* ==============================
-   LIVE Blink Animation
-   ============================== */
+.badge.schedule { background-color: #444; }
+.badge.ended { background-color: #777; }
 @keyframes liveBlink {
   0%,100% { opacity: 1; box-shadow: 0 0 0 rgba(233,30,99,0); }
   50% { opacity: 0.6; box-shadow: 0 0 12px rgba(233,30,99,0.8); }
@@ -369,3 +361,4 @@ body {
   padding: 25px;
   border-radius: 16px;
   box-shadow: 0 0 24px rgba(255,0,150,0.6);
+   }
