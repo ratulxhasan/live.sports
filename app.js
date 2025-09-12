@@ -61,7 +61,33 @@ function renderMatches(sport) {
   const container = document.getElementById(`${sport}-section`);
   container.innerHTML = "";
 
-  const list = Array.isArray(window.matches[sport]) ? window.matches[sport] : [];
+  // ==============================
+  // ✅ Sorting matches
+  // ==============================
+  const list = Array.isArray(window.matches[sport]) ? window.matches[sport].slice() : [];
+  const order = { live: 0, upcoming: 1, ended: 2 };
+  list.sort((a, b) => {
+    const statusA = (a.status || "").toLowerCase();
+    const statusB = (b.status || "").toLowerCase();
+
+    if (order[statusA] !== order[statusB]) {
+      return order[statusA] - order[statusB];
+    }
+
+    // Upcoming → earliest first
+    if (statusA === "upcoming" && statusB === "upcoming") {
+      return new Date(a.startTime) - new Date(b.startTime);
+    }
+
+    // Ended → latest first
+    if (statusA === "ended" && statusB === "ended") {
+      return new Date(b.startTime) - new Date(a.startTime);
+    }
+
+    return 0; // for live keep same order
+  });
+  // ==============================
+
   if (!list.length) {
     container.innerHTML = `<div class="no-matches"><h3>No matches</h3></div>`;
     return;
