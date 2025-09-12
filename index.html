@@ -74,84 +74,82 @@
     <div id="firebaseStatus" class="firebase-status">Initializing...</div>
   </div>
 
-  <!-- Firebase Loader -->
-    <script type="module">
-  let firebaseInitialized = false;
+  <!-- Firebase Loader + Sorting -->
+  <script type="module">
+    let firebaseInitialized = false;
 
-  async function initializeFirebase() {
-    if (firebaseInitialized) return;
-    firebaseInitialized = true;
+    async function initializeFirebase() {
+      if (firebaseInitialized) return;
+      firebaseInitialized = true;
 
-    try {
-      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-      const { getDatabase, ref, onValue } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
+      try {
+        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+        const { getDatabase, ref, onValue } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyCkLQ5vf1z9dYjAVcOo7tm0BRT8N7jAbOw",
-        authDomain: "ratul-liv.firebaseapp.com",
-        databaseURL: "https://ratul-liv-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "ratul-liv",
-        storageBucket: "ratul-liv.firebasestorage.app",
-        messagingSenderId: "395032456768",
-        appId: "1:395032456768:web:eadef753d410c71c5439a5",
-      };
-
-      const app = initializeApp(firebaseConfig);
-      const db = getDatabase(app);
-      const matchesRef = ref(db, 'matches');
-
-      onValue(matchesRef, (snapshot) => {
-        const data = snapshot.val() || {};
-        let football = data.football ? Object.values(data.football) : [];
-        let cricket = data.cricket ? Object.values(data.cricket) : [];
-
-        // ✅ Sorting function
-        function sortMatches(arr) {
-          const order = { live: 0, upcoming: 1, ended: 2 };
-          return arr.slice().sort((a, b) => {
-            const statusA = (a.status || "").toLowerCase();
-            const statusB = (b.status || "").toLowerCase();
-
-            if (order[statusA] !== order[statusB]) {
-              return order[statusA] - order[statusB];
-            }
-
-            // Upcoming → earliest first
-            if (statusA === "upcoming" && statusB === "upcoming") {
-              return new Date(a.startTime) - new Date(b.startTime);
-            }
-
-            // Ended → latest first
-            if (statusA === "ended" && statusB === "ended") {
-              return new Date(b.startTime) - new Date(a.startTime);
-            }
-
-            return 0; // live keep same order
-          });
-        }
-
-        window.matches = {
-          football: sortMatches(football),
-          cricket: sortMatches(cricket)
+        const firebaseConfig = {
+          apiKey: "AIzaSyCkLQ5vf1z9dYjAVcOo7tm0BRT8N7jAbOw",
+          authDomain: "ratul-liv.firebaseapp.com",
+          databaseURL: "https://ratul-liv-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "ratul-liv",
+          storageBucket: "ratul-liv.firebasestorage.app",
+          messagingSenderId: "395032456768",
+          appId: "1:395032456768:web:eadef753d410c71c5439a5",
         };
 
-        console.log("✅ Sorted Matches:", window.matches);
-        document.dispatchEvent(new CustomEvent('firebaseDataReady'));
-      });
-    } catch (e) {
-      console.error("Firebase error:", e);
-      document.dispatchEvent(new CustomEvent('firebaseDataError'));
-    }
-  }
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const matchesRef = ref(db, 'matches');
 
-  // Turnstile callback
-  window.onTurnstileSuccess = function(token) {
-    document.getElementById("turnstileOverlay").style.display = "none";
-    document.getElementById("mainContent").style.display = "block";
-    initializeFirebase();
-  }
-              </script>
-  <!-- App Logic -->
+        onValue(matchesRef, (snapshot) => {
+          const data = snapshot.val() || {};
+          let football = data.football ? Object.values(data.football) : [];
+          let cricket = data.cricket ? Object.values(data.cricket) : [];
+
+          // ===============================
+          // Sorting function (LIVE → SCHEDULE → ENDED)
+          // ===============================
+          function sortMatches(arr) {
+            const order = { live: 0, schedule: 1, ended: 2 };
+            return arr.slice().sort((a, b) => {
+              const statusA = (a.status || "").toLowerCase();
+              const statusB = (b.status || "").toLowerCase();
+
+              const sA = statusA === "live" ? "live" : statusA === "ended" ? "ended" : "schedule";
+              const sB = statusB === "live" ? "live" : statusB === "ended" ? "ended" : "schedule";
+
+              if (order[sA] !== order[sB]) return order[sA] - order[sB];
+
+              if (sA === "schedule") return new Date(a.startTime) - new Date(b.startTime);
+              if (sA === "ended") return new Date(b.startTime) - new Date(a.startTime);
+
+              return 0;
+            });
+          }
+
+          window.matches = {
+            football: sortMatches(football),
+            cricket: sortMatches(cricket)
+          };
+
+          console.log("✅ Sorted Matches Ready", window.matches);
+          document.dispatchEvent(new CustomEvent('firebaseDataReady'));
+        });
+
+      } catch (e) {
+        console.error("Firebase error:", e);
+        document.dispatchEvent(new CustomEvent('firebaseDataError'));
+      }
+    }
+
+    // Turnstile callback
+    window.onTurnstileSuccess = function(token) {
+      document.getElementById("turnstileOverlay").style.display = "none";
+      document.getElementById("mainContent").style.display = "block";
+      initializeFirebase();
+    }
+  </script>
+
+  <!-- App Logic (same app.js as before, unchanged) -->
   <script src="app.js"></script>
 </body>
 </html>
