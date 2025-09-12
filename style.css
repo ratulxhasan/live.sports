@@ -175,14 +175,20 @@ body {
   width: 30%;
 }
 .team-logo-small {
-  width: 90px;
-  height: 90px;
-  object-fit: contain;
-  margin-bottom: 10px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   border: 2px solid #fff;
-  box-shadow: 0 0 12px rgba(255,255,255,0.2);
-  transition: transform 0.3s ease;
+  overflow: hidden; /* clip inner image */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.team-logo-small img {
+  width: 50%;  /* image slightly bigger than container */
+  height: 50%;
+  object-fit: cover; /* fill container */
 }
 .team-logo-small:hover {
   transform: scale(1.1);
