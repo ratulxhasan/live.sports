@@ -75,11 +75,11 @@
   </div>
 
   <!-- Firebase Loader -->
-<script type="module">
+    <script type="module">
   let firebaseInitialized = false;
 
   async function initializeFirebase() {
-    if (firebaseInitialized) return; // prevent double init
+    if (firebaseInitialized) return;
     firebaseInitialized = true;
 
     try {
@@ -108,45 +108,49 @@
         // ✅ Sorting function
         function sortMatches(arr) {
           const order = { live: 0, upcoming: 1, ended: 2 };
-          return arr.sort((a, b) => {
-            if (order[a.status] !== order[b.status]) {
-              return order[a.status] - order[b.status];
+          return arr.slice().sort((a, b) => {
+            const statusA = (a.status || "").toLowerCase();
+            const statusB = (b.status || "").toLowerCase();
+
+            if (order[statusA] !== order[statusB]) {
+              return order[statusA] - order[statusB];
             }
 
             // Upcoming → earliest first
-            if (a.status === "upcoming" && b.status === "upcoming") {
-              return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+            if (statusA === "upcoming" && statusB === "upcoming") {
+              return new Date(a.startTime) - new Date(b.startTime);
             }
 
             // Ended → latest first
-            if (a.status === "ended" && b.status === "ended") {
-              return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+            if (statusA === "ended" && statusB === "ended") {
+              return new Date(b.startTime) - new Date(a.startTime);
             }
 
-            return 0; // for live keep same order
+            return 0; // live keep same order
           });
         }
 
-        football = sortMatches(football);
-        cricket = sortMatches(cricket);
+        window.matches = {
+          football: sortMatches(football),
+          cricket: sortMatches(cricket)
+        };
 
-        window.matches = { football, cricket };
-        console.log("✅ Sorted Data Ready", window.matches);
+        console.log("✅ Sorted Matches:", window.matches);
         document.dispatchEvent(new CustomEvent('firebaseDataReady'));
       });
     } catch (e) {
       console.error("Firebase error:", e);
+      document.dispatchEvent(new CustomEvent('firebaseDataError'));
     }
   }
 
   // Turnstile callback
   window.onTurnstileSuccess = function(token) {
-    console.log("Turnstile verified:", token);
     document.getElementById("turnstileOverlay").style.display = "none";
     document.getElementById("mainContent").style.display = "block";
     initializeFirebase();
   }
-</script>
+              </script>
   <!-- App Logic -->
   <script src="app.js"></script>
 </body>
