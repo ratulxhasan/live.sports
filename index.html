@@ -1,155 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Ratul LIV - Live Sports</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>Ratul LIV - Live Sports</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<!-- Prefetch -->
-<link rel="dns-prefetch" href="//firebasestorage.googleapis.com" />
-<link rel="dns-prefetch" href="//cdn.jwplayer.com" />
-<link rel="dns-prefetch" href="//ratul122.workers.dev" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
 
-<!-- Font Awesome -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="style.css" />
 
-<!-- Main CSS -->
-<link rel="stylesheet" href="style.css">
+  <!-- JW Player -->
+  <script src="https://ssl.p.jwpcdn.com/player/v/8.33.2/jwplayer.js"></script>
+  <script>jwplayer.key = "cLGMn8T20tGvW+0eXPhq4NNmLB57TrscPjd1IyJF84o=";</script>
 
-<!-- Cloudflare Turnstile -->
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <!-- Firebase SDK + Sorting -->
+  <script type="module">
+    async function initializeFirebase() {
+      try {
+        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
+        const { getDatabase, ref, onValue } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
 
-<!-- JW Player -->
-<script src="https://ssl.p.jwpcdn.com/player/v/8.33.2/jwplayer.js"></script>
-<script>jwplayer.key="cLGMn8T20tGvW+0eXPhq4NNmLB57TrscPjd1IyJF84o=";</script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyCkLQ5vf1z9dYjAVcOo7tm0BRT8N7jAbOw",
+          authDomain: "ratul-liv.firebaseapp.com",
+          databaseURL: "https://ratul-liv-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "ratul-liv",
+          storageBucket: "ratul-liv.appspot.com",
+          messagingSenderId: "395032456768",
+          appId: "1:395032456768:web:eadef753d410c71c5439a5",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const matchesRef = ref(db, 'matches');
+
+        function sortMatches(arr) {
+          return arr
+            .map(m => {
+              const now = Date.now();
+              m._status = m.status?.toLowerCase() || 'scheduled';
+              m._start = new Date(m.startTime).getTime() || 0;
+              m._end = new Date(m.endTime).getTime() || m._start;
+              m._order = m._status === 'live' ? 0 : (m._start > now ? 1 : 2);
+              return m;
+            })
+            .sort((a, b) => {
+              if (a._order !== b._order) return a._order - b._order;
+              return a._order === 2 ? b._end - a._end : a._start - b._start;
+            });
+        }
+
+        onValue(matchesRef, snapshot => {
+          const data = snapshot.val() || {};
+          window.matches = {
+            football: data.football ? sortMatches(Object.values(data.football)) : [],
+            cricket: data.cricket ? sortMatches(Object.values(data.cricket)) : []
+          };
+          document.dispatchEvent(new CustomEvent('firebaseDataReady'));
+        });
+      } catch (err) {
+        console.error("Firebase error:", err);
+        window.matches = { football: [], cricket: [] };
+        document.dispatchEvent(new CustomEvent('firebaseDataError'));
+      }
+    }
+
+    initializeFirebase();
+  </script>
 </head>
 <body>
+  <div class="container">
 
-<!-- Turnstile overlay -->
-<div id="turnstileOverlay">
-  <div id="turnstileBox">
-    <h4>Verify you're human 🎭 DDOS & BOT security by Cloudflare</h4>
-    <div class="cf-turnstile"
-         data-sitekey="0x4AAAAAAB0sj0L7hIXQMc2l"
-         data-callback="onTurnstileSuccess"></div>
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">Live Sports 🇧🇩</div>
+      <button class="menu-btn" id="menuBtn"><i class="fas fa-bars"></i></button>
+      <div class="dropdown-menu" id="dropdownMenu">
+        <a href="https://t.me/+5S-lx5CxGJEwMTdl" target="_blank"><i class="fab fa-telegram-plane"></i> Join Telegram</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </div>
+    </header>
+
+    <!-- Featured Match -->
+    <section class="featured-match" id="videoSection" style="display:none;">
+      <div class="featured-title" id="videoTitle"></div>
+      <div class="player-container">
+        <div id="jwplayerDiv" class="video-player"></div>
+      </div>
+      <div class="server-options" id="serverRow"></div>
+    </section>
+
+    <!-- Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" id="tabFootball">Football</button>
+      <button class="tab-btn" id="tabCricket">Cricket</button>
+    </nav>
+
+    <!-- Match Sections -->
+    <section id="football-section" class="matches-section"></section>
+    <section id="cricket-section" class="matches-section hidden"></section>
+
+    <!-- Footer -->
+    <footer class="footer">&copy; 2025 Ratul LIV. All Rights Reserved. 🇧🇩</footer>
   </div>
-</div>
 
-<!-- Main Content -->
-<div id="mainContent" style="display:none;">
-  <header class="header">
-    <div class="logo">Live Sports 🇧🇩</div>
-    <button class="menu-btn" id="menuBtn"><i class="fas fa-bars"></i></button>
-    <div class="dropdown-menu" id="dropdownMenu">
-      <a href="https://t.me/+5S-lx5CxGJEwMTdl" target="_blank"><i class="fab fa-telegram-plane"></i> Join Telegram</a>
-      <a href="#about">About</a>
-      <a href="#contact">Contact</a>
-    </div>
-  </header>
-
-  <!-- Video Player (Sticky) -->
-  <section id="videoSection" class="featured-match" style="display:none;">
-    <div id="videoTitle" class="featured-title"></div>
-    <div class="player-container">
-      <div id="jwplayerDiv" class="video-player"></div>
-    </div>
-    <div id="serverRow" class="server-options"></div>
-  </section>
-
-  <!-- Tabs -->
-  <nav class="nav-tabs">
-    <button class="tab-btn active" id="tabFootball">Football</button>
-    <button class="tab-btn" id="tabCricket">Cricket</button>
-  </nav>
-
-  <!-- Match Sections -->
-  <section id="football-section" class="matches-section"></section>
-  <section id="cricket-section" class="matches-section hidden"></section>
-
-  <footer class="footer">&copy; 2025 Ratul liv. All Rights Reserved.🇧🇩</footer>
-
+  <!-- Firebase Status -->
   <div id="firebaseStatus" class="firebase-status">Initializing...</div>
-</div>
 
-<script type="module">
-let firebaseInitialized = false;
-
-async function initializeFirebase() {
-  if (firebaseInitialized) return;
-  firebaseInitialized = true;
-
-  try {
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-    const { getDatabase, ref, onValue } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCkLQ5vf1z9dYjAVcOo7tm0BRT8N7jAbOw",
-      authDomain: "ratul-liv.firebaseapp.com",
-      databaseURL: "https://ratul-liv-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "ratul-liv",
-      storageBucket: "ratul-liv.firebasestorage.app",
-      messagingSenderId: "395032456768",
-      appId: "1:395032456768:web:eadef753d410c71c5439a5",
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const matchesRef = ref(db, 'matches');
-
-    onValue(matchesRef, (snapshot) => {
-      const data = snapshot.val() || {};
-      const football = data.football ? Object.values(data.football) : [];
-      const cricket = data.cricket ? Object.values(data.cricket) : [];
-
-      function sortMatches(arr) {
-        const order = { live: 0, schedule: 1, ended: 2 };
-        return arr.slice().sort((a, b) => {
-          const sA = (a.status || "schedule").toLowerCase();
-          const sB = (b.status || "schedule").toLowerCase();
-          if (order[sA] !== order[sB]) return order[sA] - order[sB];
-          if (sA === "schedule") return new Date(a.startTime) - new Date(b.startTime);
-          if (sA === "ended") return new Date(b.startTime) - new Date(a.startTime);
-          return 0;
-        });
-      }
-
-      window.matches = {
-        football: sortMatches(football),
-        cricket: sortMatches(cricket)
-      };
-
-      document.getElementById('firebaseStatus').textContent = '✅ Matches loaded';
-      document.dispatchEvent(new CustomEvent('firebaseDataReady'));
-    });
-
-  } catch (e) {
-    console.error("Firebase error:", e);
-    document.getElementById('firebaseStatus').textContent = '❌ Firebase failed';
-  }
-}
-
-// Turnstile callback
-window.onTurnstileSuccess = function(token) {
-  document.getElementById("turnstileOverlay").style.display = "none";
-  document.getElementById("mainContent").style.display = "block";
-  initializeFirebase();
-};
-
-// Tab switching
-document.getElementById('tabFootball').addEventListener('click', () => {
-  document.getElementById('football-section').classList.remove('hidden');
-  document.getElementById('cricket-section').classList.add('hidden');
-  document.getElementById('tabFootball').classList.add('active');
-  document.getElementById('tabCricket').classList.remove('active');
-});
-document.getElementById('tabCricket').addEventListener('click', () => {
-  document.getElementById('cricket-section').classList.remove('hidden');
-  document.getElementById('football-section').classList.add('hidden');
-  document.getElementById('tabCricket').classList.add('active');
-  document.getElementById('tabFootball').classList.remove('active');
-});
-</script>
-
-<script src="app.js"></script>
+  <!-- App Logic -->
+  <script src="app.js"></script>
 </body>
 </html>
