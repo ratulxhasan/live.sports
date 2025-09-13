@@ -362,3 +362,26 @@ body {
   border-radius: 16px;
   box-shadow: 0 0 24px rgba(255,0,150,0.6);
 }
+.notice-marquee {
+  width: 100%;
+  overflow: hidden;
+  background: #222;
+  color: #fff;
+  font-size: 15px;
+  font-family: 'Noto Sans Bengali', sans-serif;
+  border-top: 2px solid #ff5722;
+  border-bottom: 2px solid #ff5722;
+  padding: 6px 0;
+}
+
+.notice-text {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  animation: scrollNotice 25s linear infinite;
+}
+
+@keyframes scrollNotice {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
