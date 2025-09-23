@@ -163,8 +163,9 @@ function renderStreams(streams, isLiveMatch) {
           type: "hls",
           width: "100%",
           aspectratio: "16:9",
-          autostart: true
           repeat: true
+          autostart: true 
+          
         });
       }
     });
