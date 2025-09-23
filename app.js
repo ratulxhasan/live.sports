@@ -163,7 +163,7 @@ function renderStreams(streams, isLiveMatch) {
           type: "hls",
           width: "100%",
           aspectratio: "16:9",
-          repeat: true
+          
           autostart: true 
           
         });
