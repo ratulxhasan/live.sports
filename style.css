@@ -235,7 +235,17 @@ body {
   margin-bottom: 4px;
   letter-spacing: 1px;
 }
+featured-title {
+  font-size: 16px;
+  font-weight: 900; /* খুব মোটা টেক্সট */
+  color: #ffffff;
+  text-align: center;
+  margin: 2px 0;
 
+  /* Premium feel text effects */
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.7); /* glow effect */
+  letter-spacing: 1px; /* অল্প spacing */
+   }
 /* ==============================
    Badges
    ============================== */
