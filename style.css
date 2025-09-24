@@ -395,8 +395,7 @@ body {
   color: #fff;
   font-size: 15px;
   font-family: 'Noto Sans Bengali', sans-serif;
-  border-top: 2px solid #ff5722;
-  border-bottom: 2px solid #ff5722;
+
   padding: 6px 0;
 }
 .notice-text {
