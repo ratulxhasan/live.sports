@@ -250,3 +250,24 @@ document.addEventListener("click", (e) => {
     dropdownMenu.style.display = "none";
   }
 });
+// ==============================
+// Auto-recovery watchdog
+// ==============================
+setInterval(() => {
+  // যদি video একদমই play না করে বা buffer আটকে যায়
+  if (video.readyState < 2 || video.paused) {
+    console.warn("⚠️ Stream stalled, trying recovery...");
+    if (player.getNetworkingEngine()) {
+      player.retryStreaming(); // প্রথমে retry
+    }
+    // যদি retry কাজ না করে, তাহলে reload
+    else if (player.getManifestUri()) {
+      player.load(player.getManifestUri()).then(() => {
+        video.play();
+        console.log("🔄 Stream reloaded successfully");
+      }).catch(err => {
+        console.error("❌ Reload failed:", err);
+      });
+    }
+  }
+}, 15000); // প্রতি 15 সেকেন্ডে check করবে
