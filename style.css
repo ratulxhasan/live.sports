@@ -26,7 +26,7 @@ body {
    ============================== */
 .header {
   background: linear-gradient(90deg, #ff005a, #ff0080, #ff00bf);
-  padding: 6px 12px;
+  padding: 22px8px;
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -49,7 +49,7 @@ body {
   text-shadow: 0 0 6px rgba(255,255,255,0.4);
 }
 .menu-btn {
-  font-size: 22px;
+  font-size: 11px;
   color: #fff;
   background: none;
   border: none;
@@ -272,7 +272,7 @@ body {
 .server-btn {
   background: #111;
   color: #fff;
-  border: 1px solid #333;
+  border: 2px solid #333;
   padding: 6px 16px;
   border-radius: 20px;
   font-size: 14px;
