@@ -395,15 +395,15 @@ body {
   color: #fff;
   font-size: 15px;
   font-family: 'Noto Sans Bengali', sans-serif;
-  border-top: 2px solid #ff5722;
-  border-bottom: 2px solid #ff5722;
+  border-top: 0px solid #ff5722;
+  border-bottom: 0px solid #ff5722;
   padding: 6px 0;
 }
 .notice-text {
   display: inline-block;
   white-space: nowrap;
   padding-left: 100%;
-  animation: scrollNotice 25s linear infinite;
+  animation: scrollNotice 12s linear infinite;
 }
 @keyframes scrollNotice {
   0% { transform: translateX(0); }
