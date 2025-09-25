@@ -118,8 +118,7 @@ function ensureCountdownTicking() {
       badge.textContent = text;
     });
   }, 1000);
-}
-// ==============================
+}// ==============================
 // Shaka Player setup (global)
 // ==============================
 shaka.polyfill.installAll();
@@ -135,12 +134,22 @@ ui.configure({
 
 player.configure({
   streaming: {
-    bufferingGoal: 1800,
-    bufferBehind: 30,
-    rebufferingGoal: 10,
-    jumpLargeGaps: true,
-    lowLatencyMode: false,
-    abr: { enabled: true }
+    bufferingGoal: 20,     // দ্রুত play শুরু হবে
+    bufferBehind: 20,
+    rebufferingGoal: 6,
+    lowLatencyMode: true,
+    stallEnabled: true,
+    stallThreshold: 1,
+    stallSkip: 0.1
+  },
+  abr: {
+    enabled: true,
+    defaultBandwidthEstimate: 500000, // শুরুর জন্য মাঝারি estimate (500 kbps)
+    switchInterval: 6,                // প্রতি ৬ সেকেন্ডে quality check করবে
+    restrictions: {
+      maxHeight: 2160,                // 2160p = 4K পর্যন্ত allow
+      minHeight: 240                  // নেট খারাপ হলে 240p পর্যন্ত নামতে পারবে
+    }
   }
 });
 
@@ -153,6 +162,20 @@ player.addEventListener('error', (e) => {
     }
   }, 2000);
 });
+
+// ==============================
+// Proxy helper
+// ==============================
+function base64UrlEncode(str) {
+  const b64 = btoa(str);
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+function makeProxyUrl(url) {
+  const base = url.substring(0, url.lastIndexOf('/') + 1);
+  const file = url.split('/').pop();
+  const originEncoded = base64UrlEncode(base);
+  return `https://ratul11.ratulhasan2a.workers.dev/o/${originEncoded}/${file}`;
+}
 
 // ==============================
 // Player & streams
@@ -178,6 +201,8 @@ function renderStreams(streams, isLiveMatch) {
     const btn = document.createElement("button");
     btn.className = "server-btn";
     btn.textContent = (s.name || `Server ${i + 1}`).trim();
+
+    // Firebase থেকে raw URL 그대로 রাখো
     btn.dataset.url = s.url;
     btn.dataset.type = s.type || "hls";
     btn.dataset.clearkey = s.clearkey ? JSON.stringify(s.clearkey) : null;
@@ -197,9 +222,12 @@ function renderStreams(streams, isLiveMatch) {
           } else {
             player.configure({ drm: { clearKeys: {} } });
           }
-          await player.load(btn.dataset.url);
+
+          // ✅ Proxy apply হচ্ছে শুধু এখানে
+          const playUrl = makeProxyUrl(btn.dataset.url);
+          await player.load(playUrl);
           video.play();
-          console.log(`✅ Now playing: ${btn.textContent}`);
+          console.log(`✅ Now playing (via proxy): ${btn.textContent}`);
         } catch (err) {
           console.error("❌ Load failed:", err);
         }
@@ -250,18 +278,16 @@ document.addEventListener("click", (e) => {
     dropdownMenu.style.display = "none";
   }
 });
+
 // ==============================
 // Auto-recovery watchdog
 // ==============================
 setInterval(() => {
-  // যদি video একদমই play না করে বা buffer আটকে যায়
   if (video.readyState < 2 || video.paused) {
     console.warn("⚠️ Stream stalled, trying recovery...");
     if (player.getNetworkingEngine()) {
-      player.retryStreaming(); // প্রথমে retry
-    }
-    // যদি retry কাজ না করে, তাহলে reload
-    else if (player.getManifestUri()) {
+      player.retryStreaming();
+    } else if (player.getManifestUri()) {
       player.load(player.getManifestUri()).then(() => {
         video.play();
         console.log("🔄 Stream reloaded successfully");
@@ -270,4 +296,4 @@ setInterval(() => {
       });
     }
   }
-}, 15000); // প্রতি 15 সেকেন্ডে check করবে
+}, 15000);
