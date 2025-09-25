@@ -1,54 +1,115 @@
 // ==============================
-// Global state
+// Ratul LIV - Fixed Extra Enhanced App.js
 // ==============================
-window.currentTab = "cricket";
-window.matches = { cricket: [], football: [] };
+shaka.polyfill.installAll();
+
+let player, video, wrapper;
 let countdownTimerId = null;
 
 // ==============================
-// Tab switching
+// Network detection for ABR
 // ==============================
-document.getElementById("tabFootball").addEventListener("click", () => switchTab("football"));
-document.getElementById("tabCricket").addEventListener("click", () => switchTab("cricket"));
-
-function switchTab(tab) {
-  window.currentTab = tab;
-  document.querySelectorAll(".matches-section").forEach(s => s.classList.add("hidden"));
-  const section = document.getElementById(`${tab}-section`);
-  if (section) section.classList.remove("hidden");
-
-  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  const btn = document.getElementById(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-  if (btn) btn.classList.add("active");
+async function getNetworkSpeed() {
+  try {
+    const start = performance.now();
+    const response = await fetch('https://www.google.com/images/branding/googlelogo/2x/googlelogo_light_color_92x30dp.png', {cache:'no-cache'});
+    const blob = await response.blob();
+    const duration = (performance.now() - start) / 1000;
+    const bitsLoaded = blob.size * 8;
+    return bitsLoaded; // bits/sec
+  } catch {
+    return 2_000_000; // default 2 Mbps
+  }
 }
 
 // ==============================
-// Countdown & badges
+// Initialize Shaka Player
+// ==============================
+async function initPlayer() {
+  video = document.getElementById("video");
+  wrapper = document.getElementById("player-wrapper");
+  player = new shaka.Player(video);
+
+  const ui = new shaka.ui.Overlay(player, wrapper, video);
+  ui.configure({
+    controlPanelElements: ['play_pause','mute','volume','fullscreen','quality','picture_in_picture'],
+    addSeekBar: true
+  });
+
+  const netSpeed = await getNetworkSpeed();
+  const maxBandwidth = Math.max(Math.min(netSpeed * 0.75, 5_000_000), 500_000);
+
+  player.configure({
+    drm: { retryParameters: { maxAttempts: 10, baseDelay: 1000, backoffFactor: 2 } },
+    streaming: { bufferingGoal:60, rebufferingGoal:5, bufferBehind:30, skipLargeGaps:true, lowLatencyMode:false },
+    abr: { enabled:true, switchInterval:8, defaultBandwidthEstimate:netSpeed, bandwidthUpgradeTarget:0.7, bandwidthDowngradeTarget:0.9,
+      restrictions:{ minBandwidth:300_000, maxBandwidth:maxBandwidth, minWidth:0, maxWidth:1280, minHeight:0, maxHeight:720 } },
+    manifest: { retryParameters:{ maxAttempts:10, baseDelay:1000, backoffFactor:2 } }
+  });
+
+  player.addEventListener('error', async e => {
+    const shakaError = e.detail;
+    console.error("🔴 Stream/DRM Error:", shakaError?.category, shakaError?.code, shakaError?.data || "");
+    if(shakaError?.category === 4 && shakaError?.code === 4038) {
+      console.log("🔁 DRM license retry...");
+      setTimeout(async () => {
+        try {
+          const currentUrl = video.src || "";
+          if(currentUrl && player.getNetworkingEngine()) {
+            await player.load(currentUrl);
+            video.play();
+            console.log("✅ DRM retry success!");
+          }
+        } catch(err) { console.error("❌ DRM retry failed:", err); }
+      }, 2000);
+    }
+  });
+}
+
+// ==============================
+// Firebase fetch & localStorage cache
+// ==============================
+async function loadMatchesFresh() {
+  try {
+    const db = firebase.database();
+    const matchesRef = db.ref('matches');
+
+    const snapshot = await matchesRef.once('value');
+    const data = snapshot.val() || {};
+    const matches = {
+      football: data.football ? Object.values(data.football) : [],
+      cricket: data.cricket ? Object.values(data.cricket) : []
+    };
+
+    // Save fresh data to localStorage
+    localStorage.setItem('matchesCache', JSON.stringify({ matches, updated: Date.now() }));
+
+    window.matches = matches;
+    document.dispatchEvent(new CustomEvent('firebaseDataReady'));
+  } catch (err) {
+    console.error("❌ Firebase load error:", err);
+    document.dispatchEvent(new CustomEvent('firebaseDataError'));
+  }
+}
+
+function clearMatchesCache() { localStorage.removeItem('matchesCache'); }
+
+// ==============================
+// Render match cards
 // ==============================
 function formatCountdown(startISO) {
   const now = new Date();
   const start = new Date(startISO);
-  let diff = Math.floor((start - now) / 1000);
-  if (isNaN(start.getTime())) return "";
-  if (diff <= 0) return "LIVE";
-
-  const days = Math.floor(diff / 86400); diff %= 86400;
-  const hours = Math.floor(diff / 3600); diff %= 3600;
-  const mins = Math.floor(diff / 60);
-  const secs = diff % 60;
-  return `Starts in ${days}d:${hours}h:${mins}min:${secs}sec`;
+  let diff = Math.floor((start - now)/1000);
+  if(isNaN(start.getTime())) return "";
+  if(diff<=0) return "LIVE";
+  const days = Math.floor(diff/86400); diff%=86400;
+  const hours = Math.floor(diff/3600); diff%=3600;
+  const mins = Math.floor(diff/60);
+  const secs = diff%60;
+  return `Starts in ${days}d:${hours}h:${mins}m:${secs}s`;
 }
 
-function getBadgeText(status, startTimeISO) {
-  const s = (status || "").toLowerCase();
-  if (s === "live") return "LIVE";
-  if (s === "ended") return "ENDED";
-  return formatCountdown(startTimeISO);
-}
-
-// ==============================
-// Render matches
-// ==============================
 function renderMatches(sport) {
   const container = document.getElementById(`${sport}-section`);
   container.innerHTML = "";
@@ -61,7 +122,7 @@ function renderMatches(sport) {
 
   list.forEach(match => {
     const status = (match.status || "").toLowerCase();
-    const badgeText = getBadgeText(match.status, match.startTime);
+    const badgeText = status==='live'?'LIVE':status==='ended'?'ENDED':formatCountdown(match.startTime);
     const badgeClass = status === "live" ? "badge live" : status === "ended" ? "badge ended" : "badge schedule";
 
     const card = document.createElement("div");
@@ -86,101 +147,16 @@ function renderMatches(sport) {
       </div>
     `;
 
+    // ✅ Only on click, load player
     card.addEventListener("click", () => loadMatch(match));
     container.appendChild(card);
   });
-
-  ensureCountdownTicking();
 }
 
 // ==============================
-// Countdown updater
+// Load selected match in player
 // ==============================
-function ensureCountdownTicking() {
-  if (countdownTimerId) return;
-  countdownTimerId = setInterval(() => {
-    document.querySelectorAll('.badge.schedule, .badge.live').forEach(badge => {
-      const status = (badge.dataset.status || "").toLowerCase();
-      const start = badge.dataset.start || "";
-      const text = getBadgeText(status, start);
-
-      if (text === "LIVE" && status !== "live") {
-        badge.dataset.status = "live";
-        badge.classList.remove("schedule");
-        badge.classList.add("live");
-      }
-
-      if (status === "ended") {
-        badge.classList.remove("schedule", "live");
-        badge.classList.add("ended");
-      }
-
-      badge.textContent = text;
-    });
-  }, 1000);
-}// ==============================
-// Shaka Player setup (global)
-// ==============================
-shaka.polyfill.installAll();
-const video = document.getElementById("video");
-const wrapper = document.getElementById("player-wrapper");
-const player = new shaka.Player(video);
-const ui = new shaka.ui.Overlay(player, wrapper, video);
-
-ui.configure({
-  controlPanelElements: ['play_pause', 'mute', 'volume', 'fullscreen', 'quality', 'picture_in_picture'],
-  addSeekBar: true
-});
-
-player.configure({
-  streaming: {
-    bufferingGoal: 20,     // দ্রুত play শুরু হবে
-    bufferBehind: 20,
-    rebufferingGoal: 6,
-    lowLatencyMode: true,
-    stallEnabled: true,
-    stallThreshold: 1,
-    stallSkip: 0.1
-  },
-  abr: {
-    enabled: true,
-    defaultBandwidthEstimate: 500000, // শুরুর জন্য মাঝারি estimate (500 kbps)
-    switchInterval: 6,                // প্রতি ৬ সেকেন্ডে quality check করবে
-    restrictions: {
-      maxHeight: 2160,                // 2160p = 4K পর্যন্ত allow
-      minHeight: 240                  // নেট খারাপ হলে 240p পর্যন্ত নামতে পারবে
-    }
-  }
-});
-
-player.addEventListener('error', (e) => {
-  console.error('❌ Error:', e.detail);
-  setTimeout(() => {
-    if (player.getNetworkingEngine()) {
-      player.retryStreaming();
-      console.log('🔁 Retrying stream…');
-    }
-  }, 2000);
-});
-
-// ==============================
-// Proxy helper
-// ==============================
-function base64UrlEncode(str) {
-  const b64 = btoa(str);
-  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-function makeProxyUrl(url) {
-  const base = url.substring(0, url.lastIndexOf('/') + 1);
-  const file = url.split('/').pop();
-  const originEncoded = base64UrlEncode(base);
-  return `https://ratul11.ratulhasan2a.workers.dev/o/${originEncoded}/${file}`;
-}
-
-// ==============================
-// Player & streams
-// ==============================
-function loadMatch(match) {
+async function loadMatch(match) {
   const videoSection = document.getElementById("videoSection");
   const videoTitle = document.getElementById("videoTitle");
   const serverRow = document.getElementById("serverRow");
@@ -188,112 +164,72 @@ function loadMatch(match) {
 
   videoSection.style.display = "block";
   videoTitle.textContent = `${match.team1?.name || "Team 1"} vs ${match.team2?.name || "Team 2"}`;
+  serverRow.innerHTML = "";
 
-  renderStreams(match.streams || [], isLive);
-}
+  const validStreams = (match.streams || []).filter(s => s && s.url);
+  localStorage.setItem('lastStreams', JSON.stringify({ streams: validStreams, updated: Date.now() }));
 
-function renderStreams(streams, isLiveMatch) {
-  const row = document.getElementById("serverRow");
-  row.innerHTML = "";
-
-  const valid = streams.filter(s => s && s.url);
-  valid.forEach((s, i) => {
+  validStreams.forEach((s, i) => {
     const btn = document.createElement("button");
     btn.className = "server-btn";
-    btn.textContent = (s.name || `Server ${i + 1}`).trim();
-
-    // Firebase থেকে raw URL 그대로 রাখো
+    btn.textContent = (s.name || `Server ${i+1}`).trim();
     btn.dataset.url = s.url;
-    btn.dataset.type = s.type || "hls";
     btn.dataset.clearkey = s.clearkey ? JSON.stringify(s.clearkey) : null;
+    btn.dataset.type = s.type || "dash";
 
     btn.addEventListener("click", async () => {
-      row.querySelectorAll(".server-btn").forEach(b => b.classList.remove("active", "live"));
+      serverRow.querySelectorAll(".server-btn").forEach(b => b.classList.remove("active","live"));
       btn.classList.add("active");
-      if (isLiveMatch) btn.classList.add("live");
+      if(isLive) btn.classList.add("live");
 
-      if (btn.dataset.type === "iframe") {
-        wrapper.innerHTML =
-          `<iframe src="${btn.dataset.url}" frameborder="0" allowfullscreen style="width:100%;height:100%;"></iframe>`;
+      if(btn.dataset.type === "iframe") {
+        wrapper.innerHTML = `<iframe src="${btn.dataset.url}" frameborder="0" allowfullscreen style="width:100%;height:100%;"></iframe>`;
       } else {
         try {
-          if (btn.dataset.clearkey) {
-            player.configure({ drm: { clearKeys: JSON.parse(btn.dataset.clearkey) } });
-          } else {
-            player.configure({ drm: { clearKeys: {} } });
-          }
-
-          // ✅ Proxy apply হচ্ছে শুধু এখানে
-          const playUrl = makeProxyUrl(btn.dataset.url);
-          await player.load(playUrl);
+          if(btn.dataset.clearkey) player.configure({ drm:{ clearKeys: JSON.parse(btn.dataset.clearkey) } });
+          await player.load(btn.dataset.url);
           video.play();
-          console.log(`✅ Now playing (via proxy): ${btn.textContent}`);
-        } catch (err) {
-          console.error("❌ Load failed:", err);
-        }
+          console.log(`✅ Playing: ${btn.textContent}`);
+        } catch(err) { console.error("❌ Load failed:", err); }
       }
     });
 
-    row.appendChild(btn);
+    serverRow.appendChild(btn);
   });
 
-  if (row.firstChild) row.firstChild.click();
+  if(serverRow.firstChild) serverRow.firstChild.click();
 }
 
 // ==============================
 // Firebase events
 // ==============================
-document.addEventListener("firebaseDataReady", () => {
-  window.matches.cricket = Array.isArray(window.matches.cricket) ? window.matches.cricket : [];
-  window.matches.football = Array.isArray(window.matches.football) ? window.matches.football : [];
-
+document.addEventListener("firebaseDataReady", async () => {
+  await initPlayer();
   renderMatches("football");
   renderMatches("cricket");
-  switchTab("cricket"); // default
-  updateFirebaseStatus("Connected");
+  switchTab("cricket"); // default tab
 });
 
-document.addEventListener("firebaseDataError", () => updateFirebaseStatus("Firebase error"));
+document.addEventListener("firebaseDataError", () => console.error("❌ Firebase failed"));
 
-function updateFirebaseStatus(text) {
-  const el = document.getElementById("firebaseStatus");
-  if (!el) return;
-  el.textContent = text;
-  el.style.opacity = "1";
-  setTimeout(() => (el.style.opacity = "0.5"), 2000);
+// ==============================
+// Tabs
+// ==============================
+function switchTab(tab) {
+  document.querySelectorAll(".matches-section").forEach(s => s.classList.add("hidden"));
+  const section = document.getElementById(`${tab}-section`);
+  if(section) section.classList.remove("hidden");
+
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  const btn = document.getElementById(`tab${tab.charAt(0).toUpperCase()+tab.slice(1)}`);
+  if(btn) btn.classList.add("active");
+  window.currentTab = tab;
 }
 
-// ==============================
-// Menu dropdown
-// ==============================
-const menuBtn = document.getElementById("menuBtn");
-const dropdownMenu = document.getElementById("dropdownMenu");
-
-menuBtn.addEventListener("click", () => {
-  dropdownMenu.style.display = dropdownMenu.style.display === "block" ? "none" : "block";
-});
-
-document.addEventListener("click", (e) => {
-  if (!menuBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
-    dropdownMenu.style.display = "none";
-  }
-});
+document.getElementById("tabFootball").addEventListener("click", () => switchTab("football"));
+document.getElementById("tabCricket").addEventListener("click", () => switchTab("cricket"));
 
 // ==============================
-// Auto-recovery watchdog
+// Load fresh data on page load
 // ==============================
-setInterval(() => {
-  if (video.readyState < 2 || video.paused) {
-    console.warn("⚠️ Stream stalled, trying recovery...");
-    if (player.getNetworkingEngine()) {
-      player.retryStreaming();
-    } else if (player.getManifestUri()) {
-      player.load(player.getManifestUri()).then(() => {
-        video.play();
-        console.log("🔄 Stream reloaded successfully");
-      }).catch(err => {
-        console.error("❌ Reload failed:", err);
-      });
-    }
-  }
-}, 15000);
+window.addEventListener('load', () => loadMatchesFresh());
