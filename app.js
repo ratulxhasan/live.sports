@@ -135,7 +135,7 @@ ui.configure({
 
 player.configure({
   streaming: {
-    bufferingGoal: 300,
+    bufferingGoal: 1800,
     bufferBehind: 30,
     rebufferingGoal: 10,
     jumpLargeGaps: true,
